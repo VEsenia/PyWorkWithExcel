@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import xlrd, xlwt, difflib
+from xlutils.copy import copy
+rb = xlrd.open_workbook('1.xls',formatting_info=True)
+
+
+##########КОНКУРЕНТЫ##########
+#выбираем активный лист
+sheetForeign = rb.sheet_by_index(1)
+
+#Множество продуктов конкурентов
+ProductsForeign = list()
+
+#получаем список продуктов из всех записей
+for rownum in range(sheetForeign.nrows):
+  listInfo = list()
+  #максимально
+  listInfo.append(0.0) #процент совпадения
+  listInfo.append("0") #ИД совпадения
+  listInfo.append(sheetForeign.row_values(rownum)[0])
+  listInfo.append("0") #Адрес из другой таблицы
+  ProductsForeign.append(listInfo)
+ #print(ProductsForeign)
+
+######НАШ###############
+#выбираем активный лист
+sheetOur = rb.sheet_by_index(0)
+
+#Множество наших продуктов
+ProductsOur = list()
+
+#получаем список продуктов из всех записей
+print(sheetOur.ncols)
+for row_idx in range(sheetOur.nrows):
+  RecKeyAddress = list()
+  for col_idx in range(sheetOur.ncols):
+    RecKeyAddress.append(sheetOur.cell(row_idx, col_idx).value)
+  ProductsOur.append(RecKeyAddress)
+print(ProductsOur)
+#for rec in ProductsOur:
+##  for prod in rec:
+#   print(prod)
+#  print("\n")
+#Удалить повторения
+#ProductsOur = dict(zip(ProductsOur, ProductsOur)).values()
+
+
+ListProd=list()
+
+#Ищем наши продукты у конкурентов
+
+for prodour in ProductsOur:
+  ListProdFor = list()
+  maxRes = 0.0
+  theBestWord = ""
+  key = 0
+  iter = 0
+  for prodfor in ProductsForeign:
+     s = difflib.SequenceMatcher(None, prodour[0], prodfor[2])
+     #print("Сравнение")
+     #print(prodour[0])
+     #print(prodfor)
+     res = round(s.ratio(),3)
+     if(res > maxRes):
+         maxRes=res
+         theBestWord=prodfor
+         #print("Значение")
+         #print(ProductsForeign[iter][0])
+         #print(maxRes)
+         if ProductsForeign[iter][0] < maxRes :
+             ProductsForeign[iter][0] = float(maxRes)  
+             ProductsForeign[iter][1] = prodour[1]
+             ProductsForeign[iter][3] = prodour[0]
+     iter = iter+1		 
+  #Есть ли в ListProdFor 
+  ListProdFor.append(theBestWord)
+  ListProdFor.append(maxRes)
+  ListProdFor.append(prodour)
+  ListProd.append(ListProdFor)
+
+
+for rec in ProductsForeign:
+  for prod in rec:
+   print(prod)
+  print("\n")
+ 
+#Записать в новый лист Excel
+wb = copy(rb) # a writable copy (I can't read values out of this, only write to it)
+w_sheet = wb.get_sheet(2) # the sheet to write to within the writable copy
+iter = 0
+for rec in ProductsForeign:
+  w_sheet.write(iter, 0, rec[0])
+  w_sheet.write(iter, 1, rec[1])
+  w_sheet.write(iter, 2, rec[2])
+  w_sheet.write(iter, 3, rec[3])   
+  iter = iter + 1
+
+wb.save('1.xls')
+#Отсортируем
+#for key in sorted(DictProd.iterkeys()):
+#    print "%s: %s" % (key, DictProd[key])
+#    print("\n")
